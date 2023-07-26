@@ -1,0 +1,71 @@
+{
+  "name": "__my_package_name__",
+  "version": "0.0.0",
+  "description": "__my_package_description__",
+  "sideEffects": false,
+  "types": "./dist/dts/index.d.ts",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/mjs/index.js",
+  "react-native": "./dist/mjs/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/dts/index.d.ts",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/mjs/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "type": "module",
+  "scripts": {
+    "preversion": "npm run lint -- --fix && npm run build && npm run typecheck-test && npm t && npm run type-coverage && npm run update-deps-badge && npm run update-size-badge",
+    "postversion": "git add . && git commit -am \"lint & docs [skip build]\" || : && git push && git push --tags",
+    "build:ts": "tsc -p configs/tsconfig.cjs.json && tsc -p configs/tsconfig.mjs.json && tsc -p configs/tsconfig.dts.json",
+    "build": "rm -rf dist && npm run build:ts && echo '{ \"type\": \"commonjs\" }' >> dist/cjs/package.json",
+    "lint": "eslint .",
+    "test": "jest",
+    "typecheck-test": "tsc test/*.spec.tsx --noEmit --jsx react --esModuleInterop true",
+    "type-coverage": "type-coverage --detail --strict --ignore-files **/examples/** --ignore-files **/dist/**",
+    "update-deps-badge": "replace-in-file '/(release/npm/__my_package_name__)([^\\)]*)/g' '$1/'$npm_new_version README.md --isRegex",
+    "update-size-badge": "replace-in-file '/(__my_package_name__@)([^,]*)(,__my_package_name__@)([^\\&]*)/g' '$1'$npm_new_version'$3'$npm_new_version README.md --isRegex"
+  },
+  "keywords": [
+    "__my_package_keywords__"
+  ],
+  "files": [
+    "dist",
+    "src",
+    "test"
+  ],
+  "author": "iyegoroff <iegoroff@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/iyegoroff/__my_package_name__/issues"
+  },
+  "homepage": "https://github.com/iyegoroff/__my_package_name__#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iyegoroff/__my_package_name__.git"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.22.9",
+    "@babel/preset-react": "^7.22.5",
+    "@babel/preset-typescript": "^7.22.5",
+    "@types/jest": "^29.5.3",
+    "@types/node": "^20.4.5",
+    "@types/react": "^18.2.16",
+    "@typescript-eslint/eslint-plugin": "^6.2.0",
+    "@typescript-eslint/parser": "^6.2.0",
+    "eslint": "^8.45.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "jest": "^29.6.1",
+    "prettier": "^3.0.0",
+    "replace-in-file": "^7.0.1",
+    "type-coverage": "^2.26.0",
+    "typescript": "^5.1.6"
+  },
+  "typeCoverage": {
+    "atLeast": 100
+  }
+}
