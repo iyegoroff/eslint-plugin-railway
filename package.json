@@ -1,7 +1,7 @@
 {
-  "name": "__my_package_name__",
+  "name": "eslint-plugin-railway",
   "version": "0.0.0",
-  "description": "__my_package_description__",
+  "description": "eslint rules for ts-railway",
   "sideEffects": false,
   "types": "./dist/dts/index.d.ts",
   "main": "./dist/cjs/index.js",
@@ -25,11 +25,11 @@
     "test": "jest",
     "typecheck-test": "tsc test/*.spec.tsx --noEmit --jsx react --esModuleInterop true",
     "type-coverage": "type-coverage --detail --strict --ignore-files **/examples/** --ignore-files **/dist/**",
-    "update-deps-badge": "replace-in-file '/(release/npm/__my_package_name__)([^\\)]*)/g' '$1/'$npm_new_version README.md --isRegex",
-    "update-size-badge": "replace-in-file '/(__my_package_name__@)([^,]*)(,__my_package_name__@)([^\\&]*)/g' '$1'$npm_new_version'$3'$npm_new_version README.md --isRegex"
+    "update-deps-badge": "replace-in-file '/(release/npm/eslint-plugin-railway)([^\\)]*)/g' '$1/'$npm_new_version README.md --isRegex",
+    "update-size-badge": "replace-in-file '/(eslint-plugin-railway@)([^,]*)(,eslint-plugin-railway@)([^\\&]*)/g' '$1'$npm_new_version'$3'$npm_new_version README.md --isRegex"
   },
   "keywords": [
-    "__my_package_keywords__"
+    "eslint-plugin", "ts-railway"
   ],
   "files": [
     "dist",
@@ -39,12 +39,12 @@
   "author": "iyegoroff <iegoroff@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/iyegoroff/__my_package_name__/issues"
+    "url": "https://github.com/iyegoroff/eslint-plugin-railway/issues"
   },
-  "homepage": "https://github.com/iyegoroff/__my_package_name__#readme",
+  "homepage": "https://github.com/iyegoroff/eslint-plugin-railway#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/iyegoroff/__my_package_name__.git"
+    "url": "git+https://github.com/iyegoroff/eslint-plugin-railway.git"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.22.9",
