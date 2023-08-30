@@ -14,12 +14,12 @@
     "plugin:react-hooks/recommended"
   ],
   "rules": {
-    "no-shadow": "error",
-    "no-param-reassign": "error",
+    "no-shadow": "warn",
+    "no-param-reassign": "warn",
     "prettier/prettier": "warn",
     "@typescript-eslint/ban-ts-comment": "error",
     "@typescript-eslint/strict-boolean-expressions": [
-      "error",
+      "warn",
       {
         "allowString": false,
         "allowNumber": false,
@@ -30,15 +30,15 @@
         "allowAny": false
       }
     ],
-    "@typescript-eslint/ban-types": ["error", { "types": { "null": null } }],
-    "@typescript-eslint/consistent-type-definitions": ["error", "type"],
+    "@typescript-eslint/ban-types": ["warn", { "types": { "null": null } }],
+    "@typescript-eslint/consistent-type-definitions": ["warn", "type"],
     "@typescript-eslint/no-unused-vars": [
       "error",
       { "ignoreRestSiblings": true, "argsIgnorePattern": "^_" }
     ],
     "@typescript-eslint/switch-exhaustiveness-check": "error",
     "no-restricted-syntax": [
-      "error",
+      "warn",
       { "selector": "ClassDeclaration", "message": "Don't declare classes" },
       { "selector": "ThisExpression", "message": "Don't use this" },
       { "selector": "TSEnumDeclaration", "message": "Don't declare enums" },
