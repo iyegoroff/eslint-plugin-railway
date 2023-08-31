@@ -9,4 +9,4 @@ const config = {
   testRegex: '\\.spec\\.tsx?$',
 }
 
-export default config
+module.exports = config
