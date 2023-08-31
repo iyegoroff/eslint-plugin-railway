@@ -10,7 +10,6 @@
     },
     "./package.json": "./package.json"
   },
-  "type": "module",
   "scripts": {
     "preversion": "npm run lint -- --fix && npm run build && npm t && npm run type-coverage && npm run update-deps-badge && npm run update-size-badge",
     "postversion": "git add . && git commit -am \"lint & docs [skip build]\" || : && git push && git push --tags",
