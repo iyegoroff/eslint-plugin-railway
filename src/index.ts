@@ -5,4 +5,4 @@ const config: Linter.Plugin = {
   rules,
 }
 
-export default config
+export = config
