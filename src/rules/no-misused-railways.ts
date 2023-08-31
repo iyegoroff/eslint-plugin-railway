@@ -13,7 +13,7 @@ type Options = [
   },
 ]
 
-interface ChecksVoidReturnOptions {
+type ChecksVoidReturnOptions = {
   arguments?: boolean
   attributes?: boolean
   properties?: boolean
