@@ -58,29 +58,29 @@ function parseChecksVoidReturn(
   }
 }
 
-export const name = 'no-misused-promises' as const
+export const name = 'no-misused-railways' as const
 
 export const rule = util.createRule<Options, MessageId>({
   name,
   meta: {
     docs: {
-      description: 'Disallow Promises in places not designed to handle them',
+      description: 'Disallow results in places not designed to handle them',
       recommended: 'recommended',
       requiresTypeChecking: true,
     },
     messages: {
       voidReturnArgument:
-        'Promise returned in function argument where a void return was expected.',
+        'Result returned in function argument where a void return was expected.',
       voidReturnVariable:
-        'Promise-returning function provided to variable where a void return was expected.',
+        'Result-returning function provided to variable where a void return was expected.',
       voidReturnProperty:
-        'Promise-returning function provided to property where a void return was expected.',
+        'Result-returning function provided to property where a void return was expected.',
       voidReturnReturnValue:
-        'Promise-returning function provided to return value where a void return was expected.',
+        'Result-returning function provided to return value where a void return was expected.',
       voidReturnAttribute:
-        'Promise-returning function provided to attribute where a void return was expected.',
-      conditional: 'Expected non-Promise value in a boolean conditional.',
-      spread: 'Expected a non-Promise value to be spreaded in an object.',
+        'Result-returning function provided to attribute where a void return was expected.',
+      conditional: 'Expected non-Result value in a boolean conditional.',
+      spread: 'Expected a non-Result value to be spreaded in an object.',
     },
     schema: [
       {
@@ -175,7 +175,7 @@ export const rule = util.createRule<Options, MessageId>({
     }
 
     /**
-     * This function analyzes the type of a node and checks if it is a Promise in a boolean conditional.
+     * This function analyzes the type of a node and checks if it is a Result in a boolean conditional.
      * It uses recursion when checking nested logical operators.
      * @param node The AST node to check.
      * @param isTestExpr Whether the node is a descendant of a test expression.
@@ -199,7 +199,7 @@ export const rule = util.createRule<Options, MessageId>({
         return
       }
       const tsNode = services.esTreeNodeToTSNodeMap.get(node)
-      if (isAlwaysThenable(checker, tsNode)) {
+      if (isAlwaysResult(checker, tsNode)) {
         context.report({
           messageId: 'conditional',
           node,
@@ -222,7 +222,7 @@ export const rule = util.createRule<Options, MessageId>({
         }
 
         const tsNode = services.esTreeNodeToTSNodeMap.get(argument)
-        if (returnsThenable(checker, tsNode as ts.Expression)) {
+        if (returnsResult(checker, tsNode as ts.Expression)) {
           context.report({
             messageId: 'voidReturnArgument',
             node: argument,
@@ -238,7 +238,7 @@ export const rule = util.createRule<Options, MessageId>({
         return
       }
 
-      if (returnsThenable(checker, tsNode.right)) {
+      if (returnsResult(checker, tsNode.right)) {
         context.report({
           messageId: 'voidReturnVariable',
           node: node.right,
@@ -256,7 +256,7 @@ export const rule = util.createRule<Options, MessageId>({
         return
       }
 
-      if (returnsThenable(checker, tsNode.initializer)) {
+      if (returnsResult(checker, tsNode.initializer)) {
         context.report({
           messageId: 'voidReturnVariable',
           node: node.init,
@@ -271,7 +271,7 @@ export const rule = util.createRule<Options, MessageId>({
         if (
           contextualType !== undefined &&
           isVoidReturningFunctionType(checker, tsNode.initializer, contextualType) &&
-          returnsThenable(checker, tsNode.initializer)
+          returnsResult(checker, tsNode.initializer)
         ) {
           context.report({
             messageId: 'voidReturnProperty',
@@ -283,7 +283,7 @@ export const rule = util.createRule<Options, MessageId>({
         if (
           contextualType !== undefined &&
           isVoidReturningFunctionType(checker, tsNode.name, contextualType) &&
-          returnsThenable(checker, tsNode.name)
+          returnsResult(checker, tsNode.name)
         ) {
           context.report({
             messageId: 'voidReturnProperty',
@@ -306,7 +306,7 @@ export const rule = util.createRule<Options, MessageId>({
           return
         }
 
-        if (!returnsThenable(checker, tsNode)) {
+        if (!returnsResult(checker, tsNode)) {
           return
         }
         const objType = checker.getContextualType(obj)
@@ -342,7 +342,7 @@ export const rule = util.createRule<Options, MessageId>({
       if (
         contextualType !== undefined &&
         isVoidReturningFunctionType(checker, tsNode.expression, contextualType) &&
-        returnsThenable(checker, tsNode.expression)
+        returnsResult(checker, tsNode.expression)
       ) {
         context.report({
           messageId: 'voidReturnReturnValue',
@@ -364,7 +364,7 @@ export const rule = util.createRule<Options, MessageId>({
       if (
         contextualType !== undefined &&
         isVoidReturningFunctionType(checker, expressionContainer, contextualType) &&
-        returnsThenable(checker, expression)
+        returnsResult(checker, expression)
       ) {
         context.report({
           messageId: 'voidReturnAttribute',
@@ -376,7 +376,7 @@ export const rule = util.createRule<Options, MessageId>({
     function checkSpread(node: TSESTree.SpreadElement): void {
       const tsNode = services.esTreeNodeToTSNodeMap.get(node)
 
-      if (isSometimesThenable(checker, tsNode.expression)) {
+      if (isSometimesResult(checker, tsNode.expression)) {
         context.report({
           messageId: 'spread',
           node: node.argument,
@@ -392,11 +392,11 @@ export const rule = util.createRule<Options, MessageId>({
   },
 })
 
-function isSometimesThenable(checker: ts.TypeChecker, node: ts.Node): boolean {
+function isSometimesResult(checker: ts.TypeChecker, node: ts.Node): boolean {
   const type = checker.getTypeAtLocation(node)
 
   for (const subType of tsutils.unionTypeParts(checker.getApparentType(type))) {
-    if (tsutils.isThenableType(checker, node, subType)) {
+    if (util.isResultType(checker, node, subType)) {
       return true
     }
   }
@@ -404,94 +404,81 @@ function isSometimesThenable(checker: ts.TypeChecker, node: ts.Node): boolean {
   return false
 }
 
-// Variation on the thenable check which requires all forms of the type (read:
-// alternates in a union) to be thenable. Otherwise, you might be trying to
+// Variation on the result check which requires all forms of the type (read:
+// alternates in a union) to be result. Otherwise, you might be trying to
 // check if something is defined or undefined and get caught because one of the
-// branches is thenable.
-function isAlwaysThenable(checker: ts.TypeChecker, node: ts.Node): boolean {
+// branches is result.
+function isAlwaysResult(checker: ts.TypeChecker, node: ts.Node): boolean {
   const type = checker.getTypeAtLocation(node)
 
   for (const subType of tsutils.unionTypeParts(checker.getApparentType(type))) {
-    const thenProp = subType.getProperty('then')
+    const tagProp = subType.getProperty('tag')
 
-    // If one of the alternates has no then property, it is not thenable in all
+    // If one of the alternates has no tag property, it is not result in all
     // cases.
-    if (thenProp === undefined) {
+    if (tagProp === undefined) {
       return false
     }
 
-    // We walk through each variation of the then property. Since we know it
+    // We walk through each variation of the tag property. Since we know it
     // exists at this point, we just need at least one of the alternates to
-    // be of the right form to consider it thenable.
-    const thenType = checker.getTypeOfSymbolAtLocation(thenProp, node)
-    let hasThenableSignature = false
-    for (const subType of tsutils.unionTypeParts(thenType)) {
-      for (const signature of subType.getCallSignatures()) {
-        if (
-          signature.parameters.length !== 0 &&
-          isFunctionParam(checker, signature.parameters[0], node)
-        ) {
-          hasThenableSignature = true
-          break
-        }
+    // be of the right form to consider it result.
+    const tagType = checker.getTypeOfSymbolAtLocation(tagProp, node)
+    let hasResultSignature = false
+
+    for (const subTagType of tsutils.unionTypeParts(tagType)) {
+      if (
+        subTagType.isStringLiteral() &&
+        subTagType.value === util.successLiteral &&
+        subType.getProperty(util.successLiteral) !== undefined
+      ) {
+        hasResultSignature = true
+        break
       }
 
-      // We only need to find one variant of the then property that has a
-      // function signature for it to be thenable.
-      if (hasThenableSignature) {
+      if (
+        subTagType.isStringLiteral() &&
+        subTagType.value === util.failureLiteral &&
+        subType.getProperty(util.failureLiteral) !== undefined
+      ) {
+        hasResultSignature = true
         break
       }
     }
 
-    // If no flavors of the then property are thenable, we don't consider the
-    // overall type to be thenable
-    if (!hasThenableSignature) {
+    // If no flavors of the then property are result, we don't consider the
+    // overall type to be result
+    if (!hasResultSignature) {
       return false
     }
   }
 
-  // If all variants are considered thenable (i.e. haven't returned false), we
-  // consider the overall type thenable
+  // If all variants are considered result (i.e. haven't returned false), we
+  // consider the overall type result
   return true
 }
 
-function isFunctionParam(
-  checker: ts.TypeChecker,
-  param: ts.Symbol,
-  node: ts.Node,
-): boolean {
-  const type: ts.Type | undefined = checker.getApparentType(
-    checker.getTypeOfSymbolAtLocation(param, node),
-  )
-  for (const subType of tsutils.unionTypeParts(type)) {
-    if (subType.getCallSignatures().length !== 0) {
-      return true
-    }
-  }
-  return false
-}
-
-function checkThenableOrVoidArgument(
+function checkResultOrVoidArgument(
   checker: ts.TypeChecker,
   node: ts.CallExpression | ts.NewExpression,
   type: ts.Type,
   index: number,
-  thenableReturnIndices: Set<number>,
+  resultReturnIndices: Set<number>,
   voidReturnIndices: Set<number>,
 ): void {
-  if (isThenableReturningFunctionType(checker, node.expression, type)) {
-    thenableReturnIndices.add(index)
+  if (isResultReturningFunctionType(checker, node.expression, type)) {
+    resultReturnIndices.add(index)
   } else if (isVoidReturningFunctionType(checker, node.expression, type)) {
-    // If a certain argument accepts both thenable and void returns,
-    // a promise-returning function is valid
-    if (!thenableReturnIndices.has(index)) {
+    // If a certain argument accepts both result and void returns,
+    // a Result-returning function is valid
+    if (!resultReturnIndices.has(index)) {
       voidReturnIndices.add(index)
     }
   }
 }
 
 // Get the positions of arguments which are void functions (and not also
-// thenable functions). These are the candidates for the void-return check at
+// result functions). These are the candidates for the void-return check at
 // the current call site.
 // If the function parameters end with a 'rest' parameter, then we consider
 // the array type parameter (e.g. '...args:Array<SomeType>') when determining
@@ -505,11 +492,11 @@ function voidFunctionArguments(
   if (!node.arguments) {
     return new Set<number>()
   }
-  const thenableReturnIndices = new Set<number>()
+  const resultReturnIndices = new Set<number>()
   const voidReturnIndices = new Set<number>()
   const type = checker.getTypeAtLocation(node.expression)
 
-  // We can't use checker.getResolvedSignature because it prefers an early '() => void' over a later '() => Promise<void>'
+  // We can't use checker.getResolvedSignature because it prefers an early '() => void' over a later '() => Result<void>'
   // See https://github.com/microsoft/TypeScript/issues/48077
 
   for (const subType of tsutils.unionTypeParts(type)) {
@@ -533,12 +520,12 @@ function voidFunctionArguments(
             // 'param: MaybeVoidFunction'
             type = util.getTypeArguments(type as ts.TypeReference, checker)[0]
             for (let i = index; i < node.arguments.length; i++) {
-              checkThenableOrVoidArgument(
+              checkResultOrVoidArgument(
                 checker,
                 node,
                 type,
                 i,
-                thenableReturnIndices,
+                resultReturnIndices,
                 voidReturnIndices,
               )
             }
@@ -551,23 +538,23 @@ function voidFunctionArguments(
               i < node.arguments.length && i - index < typeArgs.length;
               i++
             ) {
-              checkThenableOrVoidArgument(
+              checkResultOrVoidArgument(
                 checker,
                 node,
                 typeArgs[i - index],
                 i,
-                thenableReturnIndices,
+                resultReturnIndices,
                 voidReturnIndices,
               )
             }
           }
         } else {
-          checkThenableOrVoidArgument(
+          checkResultOrVoidArgument(
             checker,
             node,
             type,
             index,
-            thenableReturnIndices,
+            resultReturnIndices,
             voidReturnIndices,
           )
         }
@@ -575,7 +562,7 @@ function voidFunctionArguments(
     }
   }
 
-  for (const index of thenableReturnIndices) {
+  for (const index of resultReturnIndices) {
     voidReturnIndices.delete(index)
   }
 
@@ -583,16 +570,16 @@ function voidFunctionArguments(
 }
 
 /**
- * @returns Whether any call signature of the type has a thenable return type.
+ * @returns Whether any call signature of the type has a result return type.
  */
-function anySignatureIsThenableType(
+function anySignatureIsResultType(
   checker: ts.TypeChecker,
   node: ts.Node,
   type: ts.Type,
 ): boolean {
   for (const signature of type.getCallSignatures()) {
     const returnType = signature.getReturnType()
-    if (tsutils.isThenableType(checker, node, returnType)) {
+    if (util.isResultType(checker, node, returnType)) {
       return true
     }
   }
@@ -601,15 +588,15 @@ function anySignatureIsThenableType(
 }
 
 /**
- * @returns Whether type is a thenable-returning function.
+ * @returns Whether type is a result-returning function.
  */
-function isThenableReturningFunctionType(
+function isResultReturningFunctionType(
   checker: ts.TypeChecker,
   node: ts.Node,
   type: ts.Type,
 ): boolean {
   for (const subType of tsutils.unionTypeParts(type)) {
-    if (anySignatureIsThenableType(checker, node, subType)) {
+    if (anySignatureIsResultType(checker, node, subType)) {
       return true
     }
   }
@@ -631,9 +618,9 @@ function isVoidReturningFunctionType(
     for (const signature of subType.getCallSignatures()) {
       const returnType = signature.getReturnType()
 
-      // If a certain positional argument accepts both thenable and void returns,
-      // a promise-returning function is valid
-      if (tsutils.isThenableType(checker, node, returnType)) {
+      // If a certain positional argument accepts both result and void returns,
+      // a Result-returning function is valid
+      if (util.isResultType(checker, node, returnType)) {
         return false
       }
 
@@ -645,12 +632,12 @@ function isVoidReturningFunctionType(
 }
 
 /**
- * @returns Whether expression is a function that returns a thenable.
+ * @returns Whether expression is a function that returns a result.
  */
-function returnsThenable(checker: ts.TypeChecker, node: ts.Node): boolean {
+function returnsResult(checker: ts.TypeChecker, node: ts.Node): boolean {
   const type = checker.getApparentType(checker.getTypeAtLocation(node))
 
-  if (anySignatureIsThenableType(checker, node, type)) {
+  if (anySignatureIsResultType(checker, node, type)) {
     return true
   }
 

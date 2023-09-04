@@ -15,237 +15,289 @@ const ruleTester = new RuleTester({
   parser: '@typescript-eslint/parser',
 })
 
-ruleTester.run('no-misused-promises', rule, {
+ruleTester.run('no-misused-railways', rule, {
   valid: [
     `
-if (true) {
-}
-    `,
+    if (true) {
+    }
+        `,
+    `
+    if ({ tag: 'success', success: 1 }) {
+    }
+        `,
+    `
+    if ({ tag: 'failure', failure: 1 }) {
+    }
+        `,
+    `
+    if ({ tag: 'success' as const, failure: 1 }) {
+    }
+        `,
+    `
+    if ({ tag: 'failure' as const, success: 1 }) {
+    }
+        `,
     {
       code: `
-if (Promise.resolve()) {
-}
-      `,
+    import { Result } from 'ts-railway'
+    if (Result.success(1)) {
+    }
+          `,
+      options: [{ checksConditionals: false }],
+    },
+    {
+      code: `
+    import { Result } from 'ts-railway'
+    if (Result.failure(1)) {
+    }
+          `,
       options: [{ checksConditionals: false }],
     },
     `
-if (true) {
-} else if (false) {
-} else {
-}
-    `,
+    if (true) {
+    } else if (false) {
+    } else {
+    }
+        `,
     {
       code: `
-if (Promise.resolve()) {
-} else if (Promise.resolve()) {
-} else {
-}
-      `,
+    import { Result } from 'ts-railway'
+    if (Result.success(1)) {
+    } else if (Result.failure(1)) {
+    } else {
+    }
+          `,
       options: [{ checksConditionals: false }],
     },
     'for (;;) {}',
     'for (let i; i < 10; i++) {}',
     {
-      code: 'for (let i; Promise.resolve(); i++) {}',
+      code: 'import { Result } from "ts-railway"; for (let i; Result.success(1); i++) {}',
+      options: [{ checksConditionals: false }],
+    },
+    {
+      code: 'for (let i; { tag: "failure", failure: 1 }; i++) {}',
       options: [{ checksConditionals: false }],
     },
     'do {} while (true);',
     {
-      code: 'do {} while (Promise.resolve());',
+      code: 'import { Result } from "ts-railway"; do {} while (Result.success(1));',
       options: [{ checksConditionals: false }],
     },
     'while (true) {}',
     {
-      code: 'while (Promise.resolve()) {}',
+      code: 'while ({ tag: "failure", failure: 1 }) {}',
       options: [{ checksConditionals: false }],
     },
     'true ? 123 : 456;',
     {
-      code: 'Promise.resolve() ? 123 : 456;',
+      code: '({ tag: "success", success: 1 }) ? 123 : 456;',
       options: [{ checksConditionals: false }],
     },
     `
-if (!true) {
-}
-    `,
+    if (!true) {
+    }
+        `,
     {
       code: `
-if (!Promise.resolve()) {
-}
-      `,
+    import { Result } from "ts-railway"
+    if (!Result.failure(1)) {
+    }
+          `,
       options: [{ checksConditionals: false }],
     },
-    '(await Promise.resolve()) || false;',
+    'import { Result } from "ts-railway"; (Result.success(1).tag === "success") || false;',
     {
-      code: 'Promise.resolve() || false;',
+      code: 'import { Result } from "ts-railway"; Result.success(1) || false;',
       options: [{ checksConditionals: false }],
     },
-    '(true && (await Promise.resolve())) || false;',
+    '(true && ({ tag: "success", success: 1}.tag === "failure")) || false;',
     {
-      code: '(true && Promise.resolve()) || false;',
+      code: '(true && { tag: "success", success: 1}) || false;',
       options: [{ checksConditionals: false }],
     },
-    'false || (true && Promise.resolve());',
-    '(true && Promise.resolve()) || false;',
+    'false || (true && { tag: "success", success: 1});',
+    'import { Result } from "ts-railway"; (true && Result.failure(1)) || false;',
     `
-async function test() {
-  if (await Promise.resolve()) {
-  }
-}
-    `,
+    import { Result } from "ts-railway";
+    function test() {
+      if (Result.success(1).tag) {
+      }
+    }
+        `,
     `
-async function test() {
-  const mixed: Promise | undefined = Promise.resolve();
-  if (mixed) {
-    await mixed;
-  }
-}
-    `,
+    import { Result } from "ts-railway"
+    function test() {
+      declare const mixed: Result<number, never> | undefined;
+      if (mixed && mixed.tag === 'success') {
+        return mixed.success
+      }
+    }
+        `,
     `
-if (~Promise.resolve()) {
-}
-    `,
+    import { Result } from "ts-railway"
+    if (~Result.success(1)) {
+    }
+        `,
     `
-interface NotQuiteThenable {
-  then(param: string): void;
-  then(): void;
-}
-const value: NotQuiteThenable = { then() {} };
-if (value) {
-}
-    `,
+    import {Result} from 'ts-railway'
+    const val: Result<number, never> | {tag: 'foo', success: 1} = {tag: 'foo', success: 1}
+    if (val) {
+    }
+        `,
     '[1, 2, 3].forEach(val => {});',
     {
-      code: '[1, 2, 3].forEach(async val => {});',
+      code: 'import { Result } from "ts-railway"; [1, 2, 3].forEach(Result.success);',
       options: [{ checksVoidReturn: false }],
     },
-    'new Promise((resolve, reject) => resolve());',
+    `const foo = (x: () => void) => { x() }; foo(() => 1);`,
     {
-      code: 'new Promise(async (resolve, reject) => resolve());',
+      code: `
+        import { Result } from "ts-railway";
+        const foo = (x: () => void) => { x() };
+        foo(() => Result.failure(1));
+      `,
       options: [{ checksVoidReturn: false }],
     },
     `
-Promise.all(
-  ['abc', 'def'].map(async val => {
-    await val;
-  }),
-);
-    `,
+    import { Result } from "ts-railway";
+    Result.combine(
+      ...['abc', 'def'].map(val => {
+        return Result.success(val)
+      }),
+    );
+        `,
     `
-const fn: (arg: () => Promise<void> | void) => void = () => {};
-fn(() => Promise.resolve());
-    `,
+    import { Result } from "ts-railway";
+    const fn: (arg: () => Result<1, void> | void) => void = () => {};
+    fn(() => Result.success(1));
+        `,
     `
-declare const returnsPromise: (() => Promise<void>) | null;
-if (returnsPromise?.()) {
-}
-    `,
+    import { Result } from "ts-railway";
+    declare const returnsPromise: (() => Result<1, 2>) | null;
+    if (returnsPromise?.()) {
+    }
+        `,
     `
-declare const returnsPromise: { call: () => Promise<void> } | null;
-if (returnsPromise?.call()) {
-}
-    `,
-    'Promise.resolve() ?? false;',
+    import { Result } from "ts-railway";
+    declare const returnsPromise: { call: () => Result<void, void> } | null;
+    if (returnsPromise?.call()) {
+    }
+        `,
+    'import { Result } from "ts-railway"; Result.failure(1) ?? false;',
     `
-function test(a: Promise<void> | undefinded) {
-  const foo = a ?? Promise.reject();
-}
-    `,
+    import { Result } from "ts-railway";
+    function test(a: Result<void, 1> | undefinded) {
+      const foo = a ?? Result.failure(1);
+    }
+        `,
     `
-function test(p: Promise<boolean> | undefined, bool: boolean) {
-  if (p ?? bool) {
-  }
-}
-    `,
+    import { Result } from "ts-railway";
+    function test(p: Result<boolean, 1> | undefined, bool: boolean) {
+      if (p ?? bool) {
+      }
+    }
+        `,
     `
-async function test(p: Promise<boolean | undefined>, bool: boolean) {
-  if ((await p) ?? bool) {
-  }
-}
-    `,
+    import { Result } from "ts-railway";
+    function test(p: Result<boolean | undefined, void>, bool: boolean) {
+      if (Result.match({ success: (s) => s, failure: () => false }) ?? bool) {
+      }
+    }
+        `,
     `
-async function test(p: Promise<boolean> | undefined) {
-  if (await (p ?? Promise.reject())) {
-  }
-}
-    `,
+    import { Result } from "ts-railway";
+    function test(p: Result<boolean, void> | undefined) {
+      if ((p ?? p.tag === 'success')) {
+      }
+    }
+        `,
     `
-let f;
-f = async () => 10;
-    `,
+    import { Result } from "ts-railway";
+    let f;
+    f = () => Result.success(10);
+        `,
     `
-let f: () => Promise<void>;
-f = async () => 10;
-const g = async () => 0;
-const h: () => Promise<void> = async () => 10;
-    `,
+    import { Result } from "ts-railway";
+    let f: () => Result<number, void>;
+    f = () => Result.success(10);
+    const g = () => Result.failure(0);
+    const h: () => Result<number, void> = () => Result.failure(10);
+        `,
     `
-const obj = {
-  f: async () => 10,
-};
-    `,
+    const obj = {
+      f: () => ({ tag: 'failure' as const, failure: 1 }),
+    };
+        `,
     `
-const f = async () => 123;
-const obj = {
-  f,
-};
-    `,
+    import { Result } from "ts-railway";
+    const f = () => Result.success(123);
+    const obj = {
+      f,
+    };
+        `,
     `
-const obj = {
-  async f() {
-    return 0;
-  },
-};
-    `,
+    import { Result } from "ts-railway";
+    const obj = {
+      f() {
+        return Result.failure(0);
+      },
+    };
+        `,
     `
-type O = { f: () => Promise<void>; g: () => Promise<void> };
-const g = async () => 0;
-const obj: O = {
-  f: async () => 10,
-  g,
-};
-    `,
+    import { Result } from "ts-railway";
+    type O = { f: () => Result<number, void>; g: () => Result<number, void> };
+    const g = () => Result.success(0);
+    const obj: O = {
+      f: () => Result.success(10),
+      g,
+    };
+        `,
     `
-type O = { f: () => Promise<void> };
-const name = 'f';
-const obj: O = {
-  async [name]() {
-    return 10;
-  },
-};
-    `,
+    import { Result } from "ts-railway";
+    type O = { f: () => Result<number, void> };
+    const name = 'f';
+    const obj: O = {
+      [name]() {
+        return Result.success(10);
+      },
+    };
+        `,
     `
-const obj: number = {
-  g() {
-    return 10;
-  },
-};
-    `,
+    const obj: number = {
+      g() {
+        return 10;
+      },
+    };
+        `,
     `
-const obj = {
-  f: async () => 'foo',
-  async g() {
-    return 0;
-  },
-};
-    `,
+    import { Result } from "ts-railway";
+    const obj = {
+      f: () => Result.failure('foo'),
+      g() {
+        return Result.success(0);
+      },
+    };
+        `,
     `
-function f() {
-  return async () => 0;
-}
-function g() {
-  return;
-}
-    `,
+    import { Result } from "ts-railway";
+    function f() {
+      return () => Result.success(0);
+    }
+    function g() {
+      return;
+    }
+        `,
     {
       code: `
-type O = {
-  bool: boolean;
-  func: () => Promise<void>;
-};
-const Component = (obj: O) => null;
-<Component bool func={async () => 10} />;
-      `,
+    import { Result } from "ts-railway";
+    type O = {
+      bool: boolean;
+      func: () => Result<number, void>;
+    };
+    const Component = (obj: O) => null;
+    <Component bool func={() => Result.success(10)} />;
+          `,
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
@@ -254,9 +306,10 @@ const Component = (obj: O) => null;
     },
     {
       code: `
-const Component: any = () => null;
-<Component func={async () => 10} />;
-      `,
+    import { Result } from "ts-railway";
+    const Component: any = () => null;
+    <Component func={() => Result.failure(10)} />;
+          `,
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
@@ -265,66 +318,61 @@ const Component: any = () => null;
     },
     {
       code: `
-interface ItLike {
-  (name: string, callback: () => Promise<void>): void;
-  (name: string, callback: () => void): void;
-}
-
-declare const it: ItLike;
-
-it('', async () => {});
-      `,
+    import { Result } from "ts-railway";
+    interface ItLike {
+      (name: string, callback: () => Result<number, void>): void;
+      (name: string, callback: () => void): void;
+    }
+    declare const it: ItLike;
+    it('', () => Result.success(1));
+          `,
     },
     {
       code: `
-interface ItLike {
-  (name: string, callback: () => void): void;
-  (name: string, callback: () => Promise<void>): void;
-}
-
-declare const it: ItLike;
-
-it('', async () => {});
-      `,
+    import { Result } from "ts-railway";
+    interface ItLike {
+      (name: string, callback: () => void): void;
+      (name: string, callback: () => Result<void, number>): void;
+    }
+    declare const it: ItLike;
+    it('', () => Result.failure(1));
+          `,
     },
     {
       code: `
-interface ItLike {
-  (name: string, callback: () => void): void;
-}
-interface ItLike {
-  (name: string, callback: () => Promise<void>): void;
-}
-
-declare const it: ItLike;
-
-it('', async () => {});
-      `,
+    import { Result } from "ts-railway";
+    interface ItLike {
+      (name: string, callback: () => void): void;
+    }
+    interface ItLike {
+      (name: string, callback: () => Result<number, void>): void;
+    }
+    declare const it: ItLike;
+    it('', () => Result.success(1));
+          `,
     },
     {
       code: `
-interface ItLike {
-  (name: string, callback: () => Promise<void>): void;
-}
-interface ItLike {
-  (name: string, callback: () => void): void;
-}
-
-declare const it: ItLike;
-
-it('', async () => {});
-      `,
+    import { Result } from "ts-railway";
+    interface ItLike {
+      (name: string, callback: () => Result<number, void>): void;
+    }
+    interface ItLike {
+      (name: string, callback: () => void): void;
+    }
+    declare const it: ItLike;
+    it('', () => ({tag: 'success' as const, success: 1}));
+          `,
     },
     {
       code: `
-interface Props {
-  onEvent: (() => void) | (() => Promise<void>);
-}
-
-declare function Component(props: Props): any;
-
-const _ = <Component onEvent={async () => {}} />;
-      `,
+    import { Result } from "ts-railway";
+    interface Props {
+      onEvent: (() => void) | (() => Result<number, void>);
+    }
+    declare function Component(props: Props): any;
+    const _ = <Component onEvent={() => Result.success(1)} />;
+          `,
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
@@ -332,132 +380,138 @@ const _ = <Component onEvent={async () => {}} />;
       },
     },
     `
-console.log({ ...(await Promise.resolve({ key: 42 })) });
-    `,
+    import { Result } from "ts-railway";
+    console.log({
+      ...(Result.match(
+        { success: s => s, failure: () => ({})},
+        Result.success({ key: 42 })
+      ))
+    });
+        `,
     `
-const getData = () => Promise.resolve({ key: 42 });
-
-console.log({
-  someData: 42,
-  ...(await getData()),
-});
-    `,
+    import { Result } from "ts-railway";
+    const getData = () => Result.success({ key: 42 });
+    console.log({
+      someData: 42,
+      ...(Result.match({success: s => s, failure: () => ({})}, getData())),
+    });
+        `,
     `
-declare const condition: boolean;
-
-console.log({ ...(condition && (await Promise.resolve({ key: 42 }))) });
-console.log({ ...(condition || (await Promise.resolve({ key: 42 }))) });
-console.log({ ...(condition ? {} : await Promise.resolve({ key: 42 })) });
-console.log({ ...(condition ? await Promise.resolve({ key: 42 }) : {}) });
-    `,
+    import { Result } from "ts-railway";
+    declare const condition: boolean;
+    const r = Result.success({ key: 42 });
+    const matcher = { success: (s: Record<string, number>) => s, failure: () => ({}) }
+    console.log({ ...(condition && (Result.match(matcher)(r))) });
+    console.log({ ...(condition || (Result.match(matcher)(r))) });
+    console.log({ ...(condition ? {} : Result.match(matcher)(r)) });
+    console.log({ ...(condition ? Result.match(matcher)(r) : {}) });
+        `,
     `
-console.log([...(await Promise.resolve(42))]);
-    `,
+    import { Result } from "ts-railway";
+    console.log(
+      [...(Result.match({success: s => s, failure: () => 24}, Result.succes(42)))]
+    );
+        `,
     {
       code: `
-console.log({ ...Promise.resolve({ key: 42 }) });
-      `,
+    import { Result } from "ts-railway";
+    console.log({ ...Result.success({ key: 42 }) });
+          `,
       options: [{ checksSpreads: false }],
     },
     {
       code: `
-const getData = () => Promise.resolve({ key: 42 });
-
-console.log({
-  someData: 42,
-  ...getData(),
-});
-      `,
+    import { Result } from "ts-railway";
+    const getData = () => Result.success({ key: 42 });
+    console.log({
+      someData: 42,
+      ...getData(),
+    });
+          `,
       options: [{ checksSpreads: false }],
     },
     {
       code: `
-declare const condition: boolean;
-
-console.log({ ...(condition && Promise.resolve({ key: 42 })) });
-console.log({ ...(condition || Promise.resolve({ key: 42 })) });
-console.log({ ...(condition ? {} : Promise.resolve({ key: 42 })) });
-console.log({ ...(condition ? Promise.resolve({ key: 42 }) : {}) });
-      `,
+    import { Result } from "ts-railway";
+    declare const condition: boolean;
+    console.log({ ...(condition && Result.failure({ key: 42 })) });
+    console.log({ ...(condition || Result.failure({ key: 42 })) });
+    console.log({ ...(condition ? {} : Result.failure({ key: 42 })) });
+    console.log({ ...(condition ? Result.failure({ key: 42 }) : {}) });
+          `,
       options: [{ checksSpreads: false }],
     },
     {
       code: `
-// This is invalid Typescript, but it shouldn't trigger this linter specifically
-console.log([...Promise.resolve(42)]);
-      `,
+    import { Result } from "ts-railway";
+    // This is invalid Typescript, but it shouldn't trigger this linter specifically
+    console.log([...Result.success(42)]);
+          `,
       options: [{ checksSpreads: false }],
     },
     `
-function spreadAny(..._args: any): void {}
-
-spreadAny(
-  true,
-  () => Promise.resolve(1),
-  () => Promise.resolve(false),
-);
-    `,
+    import { Result } from "ts-railway";
+    function spreadAny(..._args: any): void {}
+    spreadAny(
+      true,
+      () => Result.success(1),
+      () => Result.success(false),
+    );
+        `,
     `
-function spreadArrayAny(..._args: Array<any>): void {}
-
-spreadArrayAny(
-  true,
-  () => Promise.resolve(1),
-  () => Promise.resolve(false),
-);
-    `,
+    import { Result } from "ts-railway";
+    function spreadArrayAny(..._args: Array<any>): void {}
+    spreadArrayAny(
+      true,
+      () => Result.failure(1),
+      () => Result.failure(false),
+    );
+        `,
     `
-function spreadArrayUnknown(..._args: Array<unknown>): void {}
-
-spreadArrayUnknown(() => Promise.resolve(true), 1, 2);
-
-function spreadArrayFuncPromise(
-  ..._args: Array<() => Promise<undefined>>
-): void {}
-
-spreadArrayFuncPromise(
-  () => Promise.resolve(undefined),
-  () => Promise.resolve(undefined),
-);
-    `,
+    import { Result } from "ts-railway";
+    function spreadArrayUnknown(..._args: Array<unknown>): void {}
+    spreadArrayUnknown(() => Result.success(true), 1, 2);
+    function spreadArrayFuncPromise(
+      ..._args: Array<() => Result<undefined, void>>
+    ): void {}
+    spreadArrayFuncPromise(
+      () => Result.success(undefined),
+      () => Result.success(undefined),
+    );
+        `,
     // Prettier adds a () but this tests arguments being undefined, not []
     /// eslint-disable-next-line @typescript-eslint/internal/plugin-test-formatting
     `
-class TakeCallbacks {
-  constructor(...callbacks: Array<() => void>) {}
-}
-
-new TakeCallbacks;
-new TakeCallbacks();
-new TakeCallbacks(
-  () => 1,
-  () => true,
-);
-    `,
+    class TakeCallbacks {
+      constructor(...callbacks: Array<() => void>) {}
+    }
+    new TakeCallbacks;
+    new TakeCallbacks();
+    new TakeCallbacks(
+      () => 1,
+      () => true,
+    );
+        `,
     `
-function restTuple(...args: []): void;
-function restTuple(...args: [string]): void;
-function restTuple(..._args: string[]): void {}
-
-restTuple();
-restTuple('Hello');
-    `,
+    function restTuple(...args: []): void;
+    function restTuple(...args: [string]): void;
+    function restTuple(..._args: string[]): void {}
+    restTuple();
+    restTuple('Hello');
+        `,
     `
       let value: Record<string, () => void>;
       value.sync = () => {};
     `,
     `
       type ReturnsRecord = () => Record<string, () => void>;
-
       const test: ReturnsRecord = () => {
         return { sync: () => {} };
       };
     `,
     `
       type ReturnsRecord = () => Record<string, () => void>;
-
       function sync() {}
-
       const test: ReturnsRecord = () => {
         return { sync };
       };
@@ -470,7 +524,6 @@ restTuple('Hello');
           if (text.length) {
             return;
           }
-
           return recurser(node);
         };
       }
@@ -478,17 +531,14 @@ restTuple('Hello');
     // https://github.com/typescript-eslint/typescript-eslint/issues/6637
     {
       code: `
-        type OnSelectNodeFn = (node: string | null) => void;
-
-        interface ASTViewerBaseProps {
-          readonly onSelectNode?: OnSelectNodeFn;
-        }
-
-        declare function ASTViewer(props: ASTViewerBaseProps): null;
-        declare const onSelectFn: OnSelectNodeFn;
-
-        <ASTViewer onSelectNode={onSelectFn} />;
-      `,
+            type OnSelectNodeFn = (node: string | null) => void;
+            interface ASTViewerBaseProps {
+              readonly onSelectNode?: OnSelectNodeFn;
+            }
+            declare function ASTViewer(props: ASTViewerBaseProps): null;
+            declare const onSelectFn: OnSelectNodeFn;
+            <ASTViewer onSelectNode={onSelectFn} />;
+          `,
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
@@ -496,33 +546,23 @@ restTuple('Hello');
       },
       options: [{ checksVoidReturn: { attributes: true } }],
     },
+    `
+    type O = { f: () => void };
+    const f = () => ({tag: 'failure' as const, success: 0});
+    const obj: O = {
+      f,
+    };
+          `,
   ],
 
   invalid: [
     {
       code: `
-if (Promise.resolve()) {
-}
-      `,
+    import { Result } from 'ts-railway'
+    if (Result.success(1)) {
+    }
+          `,
       errors: [
-        {
-          line: 2,
-          messageId: 'conditional',
-        },
-      ],
-    },
-    {
-      code: `
-if (Promise.resolve()) {
-} else if (Promise.resolve()) {
-} else {
-}
-      `,
-      errors: [
-        {
-          line: 2,
-          messageId: 'conditional',
-        },
         {
           line: 3,
           messageId: 'conditional',
@@ -530,7 +570,94 @@ if (Promise.resolve()) {
       ],
     },
     {
-      code: 'for (let i; Promise.resolve(); i++) {}',
+      code: `
+    import { Result } from 'ts-railway'
+    if (Result.failure(1)) {
+    }
+          `,
+      errors: [
+        {
+          line: 3,
+          messageId: 'conditional',
+        },
+      ],
+    },
+    {
+      code: `
+    if ({ tag: 'success' as const, success: 1 }) {
+    }
+              `,
+      errors: [
+        {
+          line: 2,
+          messageId: 'conditional',
+        },
+      ],
+    },
+    {
+      code: `
+    if ({ tag: 'failure' as const, failure: 1 }) {
+    }
+              `,
+      errors: [
+        {
+          line: 2,
+          messageId: 'conditional',
+        },
+      ],
+    },
+    {
+      code: `
+        import { Result } from 'ts-railway'
+        if (Result.success(1)) {
+        } else if (Result.failure(1)) {
+        } else {
+        }
+              `,
+      errors: [
+        {
+          line: 3,
+          messageId: 'conditional',
+        },
+        {
+          line: 4,
+          messageId: 'conditional',
+        },
+      ],
+    },
+    {
+      code: `
+      import { Result } from "ts-railway"
+      function test() {
+        const mixed: Result<number, never> | undefined = Result.success(1);
+        if (mixed && mixed.tag === 'success') {
+          return mixed.success
+        }
+      }
+          `,
+      errors: [
+        {
+          line: 5,
+          messageId: 'conditional',
+        },
+      ],
+    },
+    {
+      code: `
+      import {Result} from 'ts-railway'
+      const val: Result<number, never> | {tag: 'foo', success: 1} = {tag: 'success', success: 1}
+      if (val) {
+      }
+          `,
+      errors: [
+        {
+          line: 4,
+          messageId: 'conditional',
+        },
+      ],
+    },
+    {
+      code: 'import {Result} from "ts-railway"; for (let i; Result.success(1); i++) {}',
       errors: [
         {
           line: 1,
@@ -539,7 +666,7 @@ if (Promise.resolve()) {
       ],
     },
     {
-      code: 'do {} while (Promise.resolve());',
+      code: 'import {Result} from "ts-railway"; do {} while (Result.failure(1));',
       errors: [
         {
           line: 1,
@@ -548,7 +675,7 @@ if (Promise.resolve()) {
       ],
     },
     {
-      code: 'while (Promise.resolve()) {}',
+      code: 'while (({tag: "success" as const, success: []})) {}',
       errors: [
         {
           line: 1,
@@ -557,7 +684,7 @@ if (Promise.resolve()) {
       ],
     },
     {
-      code: 'Promise.resolve() ? 123 : 456;',
+      code: 'import {Result} from "ts-railway"; Result.success(1) ? 123 : 456;',
       errors: [
         {
           line: 1,
@@ -567,18 +694,19 @@ if (Promise.resolve()) {
     },
     {
       code: `
-if (!Promise.resolve()) {
-}
-      `,
+    import {Result} from "ts-railway";
+    if (!Result.failure(1)) {
+    }
+          `,
       errors: [
         {
-          line: 2,
+          line: 3,
           messageId: 'conditional',
         },
       ],
     },
     {
-      code: 'Promise.resolve() || false;',
+      code: '({tag: "failure" as const, failure: 1}) || false;',
       errors: [
         {
           line: 1,
@@ -588,41 +716,62 @@ if (!Promise.resolve()) {
     },
     {
       code: `
-[Promise.resolve(), Promise.reject()].forEach(async val => {
-  await val;
-});
-      `,
+    import {Result} from "ts-railway";
+    [Result.success(1), Result.failure(2)].forEach(val => val);
+          `,
       errors: [
         {
-          line: 2,
+          line: 3,
+          messageId: 'voidReturnArgument',
+        },
+      ],
+    },
+    {
+      code: 'import { Result } from "ts-railway"; [0, 2, 3].forEach(Result.success);',
+      errors: [
+        {
+          line: 1,
           messageId: 'voidReturnArgument',
         },
       ],
     },
     {
       code: `
-new Promise(async (resolve, reject) => {
-  await Promise.resolve();
-  resolve();
-});
-      `,
+    import { Result } from "ts-railway";
+    const foo = (x: () => void) => { x() };
+    foo(() => Result.failure(1));
+          `,
       errors: [
         {
-          line: 2,
+          line: 4,
           messageId: 'voidReturnArgument',
         },
       ],
     },
     {
       code: `
-const fnWithCallback = (arg: string, cb: (err: any, res: string) => void) => {
-  cb(null, arg);
-};
-
-fnWithCallback('val', async (err, res) => {
-  await res;
-});
-      `,
+    const fnWithCallback = (arg: string, cb: (err: any, res: string) => void) => {
+      cb(null, arg);
+    };
+    fnWithCallback('val', (err, res) => {
+      return {tag: 'success' as const, success: res}
+    });
+          `,
+      errors: [
+        {
+          line: 5,
+          messageId: 'voidReturnArgument',
+        },
+      ],
+    },
+    {
+      code: `
+    import { Result } from "ts-railway";
+    const fnWithCallback = (arg: string, cb: (err: any, res: string) => void) => {
+      cb(null, arg);
+    };
+    fnWithCallback('val', (err, res) => err ? Result.failure(err) : Result.success(res));
+          `,
       errors: [
         {
           line: 6,
@@ -632,12 +781,18 @@ fnWithCallback('val', async (err, res) => {
     },
     {
       code: `
-const fnWithCallback = (arg: string, cb: (err: any, res: string) => void) => {
-  cb(null, arg);
-};
-
-fnWithCallback('val', (err, res) => Promise.resolve(res));
-      `,
+    import { Result } from "ts-railway";
+    const fnWithCallback = (arg: string, cb: (err: any, res: string) => void) => {
+      cb(null, arg);
+    };
+    fnWithCallback('val', (err, res) => {
+      if (err) {
+        return 'abc';
+      } else {
+        return Result.success(res);
+      }
+    });
+          `,
       errors: [
         {
           line: 6,
@@ -647,35 +802,14 @@ fnWithCallback('val', (err, res) => Promise.resolve(res));
     },
     {
       code: `
-const fnWithCallback = (arg: string, cb: (err: any, res: string) => void) => {
-  cb(null, arg);
-};
-
-fnWithCallback('val', (err, res) => {
-  if (err) {
-    return 'abc';
-  } else {
-    return Promise.resolve(res);
-  }
-});
-      `,
-      errors: [
-        {
-          line: 6,
-          messageId: 'voidReturnArgument',
-        },
-      ],
-    },
-    {
-      code: `
-const fnWithCallback:
-  | ((arg: string, cb: (err: any, res: string) => void) => void)
-  | null = (arg, cb) => {
-  cb(null, arg);
-};
-
-fnWithCallback?.('val', (err, res) => Promise.resolve(res));
-      `,
+    import { Result } from "ts-railway";
+    const fnWithCallback:
+      | ((arg: string, cb: (err: any, res: string) => void) => void)
+      | null = (arg, cb) => {
+      cb(null, arg);
+    };
+    fnWithCallback?.('val', (err, res) => Result.success(res));
+          `,
       errors: [
         {
           line: 8,
@@ -685,34 +819,63 @@ fnWithCallback?.('val', (err, res) => Promise.resolve(res));
     },
     {
       code: `
-const fnWithCallback:
-  | ((arg: string, cb: (err: any, res: string) => void) => void)
-  | null = (arg, cb) => {
-  cb(null, arg);
-};
-
-fnWithCallback('val', (err, res) => {
-  if (err) {
-    return 'abc';
-  } else {
-    return Promise.resolve(res);
-  }
-});
-      `,
+    const fnWithCallback:
+      | ((arg: string, cb: (err: any, res: string) => void) => void)
+      | null = (arg, cb) => {
+      cb(null, arg);
+    };
+    fnWithCallback('val', (err, res) => {
+      if (err) {
+        return 'abc';
+      } else {
+        return {tag: 'success' as const, success: 5};
+      }
+    });
+          `,
       errors: [
         {
-          line: 8,
+          line: 7,
           messageId: 'voidReturnArgument',
         },
       ],
     },
     {
       code: `
-function test(bool: boolean, p: Promise<void>) {
-  if (bool || p) {
-  }
-}
-      `,
+    import { Result } from "ts-railway";
+    function test(bool: boolean, p: Result<void, void>) {
+      if (bool || p) {
+      }
+    }
+          `,
+      errors: [
+        {
+          line: 4,
+          messageId: 'conditional',
+        },
+      ],
+    },
+    {
+      code: `
+    import { Result } from "ts-railway";
+    function test(bool: boolean, p: Result<void, void>) {
+      if (bool && p) {
+      }
+    }
+          `,
+      errors: [
+        {
+          line: 4,
+          messageId: 'conditional',
+        },
+      ],
+    },
+    {
+      code: `
+    function test(a: any, p: {tag: 'failure', failure: number}) {
+      if (a ?? p) {
+      }
+    }
+          `,
       errors: [
         {
           line: 3,
@@ -722,70 +885,45 @@ function test(bool: boolean, p: Promise<void>) {
     },
     {
       code: `
-function test(bool: boolean, p: Promise<void>) {
-  if (bool && p) {
-  }
-}
-      `,
+    import { Result } from "ts-railway";
+    function test(p: Result<void, void> | undefined) {
+      if (p ?? Result.failure(1)) {
+      }
+    }
+          `,
       errors: [
         {
-          line: 3,
+          line: 4,
           messageId: 'conditional',
         },
       ],
     },
     {
       code: `
-function test(a: any, p: Promise<void>) {
-  if (a ?? p) {
-  }
-}
-      `,
+    import { Result } from "ts-railway";
+    let f: () => void;
+    f = () => {
+      return Result.success(1);
+    };
+          `,
       errors: [
         {
-          line: 3,
-          messageId: 'conditional',
-        },
-      ],
-    },
-    {
-      code: `
-function test(p: Promise<void> | undefined) {
-  if (p ?? Promise.reject()) {
-  }
-}
-      `,
-      errors: [
-        {
-          line: 3,
-          messageId: 'conditional',
-        },
-      ],
-    },
-    {
-      code: `
-let f: () => void;
-f = async () => {
-  return 3;
-};
-      `,
-      errors: [
-        {
-          line: 3,
+          line: 4,
           messageId: 'voidReturnVariable',
         },
       ],
     },
     {
       code: `
-let f: () => void;
-f = async () => {
-  return 3;
-};
-      `,
+      import { Result } from "ts-railway";
+      let f: () => void;
+      f = () => {
+        return Result.failure(1);
+      };
+            `,
       errors: [
         {
-          line: 3,
+          line: 4,
           messageId: 'voidReturnVariable',
         },
       ],
@@ -793,17 +931,35 @@ f = async () => {
     },
     {
       code: `
-const f: () => void = async () => {
-  return 0;
-};
-const g = async () => 1,
-  h: () => void = async () => {};
-      `,
+    import { Result } from "ts-railway";
+    const f: () => void = () => {
+      return Result.success(1);
+    };
+    const g = () => Result.failure(1),
+      h: () => void = () => Result.failure(1);
+          `,
       errors: [
         {
-          line: 2,
+          line: 3,
           messageId: 'voidReturnVariable',
         },
+        {
+          line: 7,
+          messageId: 'voidReturnVariable',
+        },
+      ],
+    },
+    {
+      code: `
+    import { Result } from "ts-railway";
+    const obj: {
+      f?: () => void;
+    } = {};
+    obj.f = () => {
+      return Result.success(0);
+    };
+          `,
+      errors: [
         {
           line: 6,
           messageId: 'voidReturnVariable',
@@ -812,44 +968,30 @@ const g = async () => 1,
     },
     {
       code: `
-const obj: {
-  f?: () => void;
-} = {};
-obj.f = async () => {
-  return 0;
-};
-      `,
+    import { Result } from "ts-railway";
+    type O = { f: () => void };
+    const obj: O = {
+      f: () => Result.success('foo'),
+    };
+          `,
       errors: [
         {
           line: 5,
-          messageId: 'voidReturnVariable',
-        },
-      ],
-    },
-    {
-      code: `
-type O = { f: () => void };
-const obj: O = {
-  f: async () => 'foo',
-};
-      `,
-      errors: [
-        {
-          line: 4,
           messageId: 'voidReturnProperty',
         },
       ],
     },
     {
       code: `
-type O = { f: () => void };
-const obj: O = {
-  f: async () => 'foo',
-};
-      `,
+      import { Result } from "ts-railway";
+      type O = { f: () => void };
+      const obj: O = {
+        f: () => Result.success('foo'),
+      };
+            `,
       errors: [
         {
-          line: 4,
+          line: 5,
           messageId: 'voidReturnProperty',
         },
       ],
@@ -857,12 +999,12 @@ const obj: O = {
     },
     {
       code: `
-type O = { f: () => void };
-const f = async () => 0;
-const obj: O = {
-  f,
-};
-      `,
+    type O = { f: () => void };
+    const f = () => ({tag: 'failure' as const, failure: 0});
+    const obj: O = {
+      f,
+    };
+          `,
       errors: [
         {
           line: 5,
@@ -872,68 +1014,71 @@ const obj: O = {
     },
     {
       code: `
-type O = { f: () => void };
-const obj: O = {
-  async f() {
-    return 0;
-  },
-};
-      `,
+    import { Result } from "ts-railway";
+    type O = { f: () => void };
+    const obj: O = {
+      f() {
+        return Result.success(0);
+      },
+    };
+          `,
       errors: [
         {
-          line: 4,
+          line: 5,
           messageId: 'voidReturnProperty',
         },
       ],
     },
     {
       code: `
-type O = { f: () => void; g: () => void; h: () => void };
-function f(): O {
-  const h = async () => 0;
-  return {
-    async f() {
-      return 123;
-    },
-    g: async () => 0,
-    h,
-  };
-}
-      `,
+    import { Result } from "ts-railway";
+    type O = { f: () => void; g: () => void; h: () => void };
+    function f(): O {
+      const h = () => Result.success(0);
+      return {
+        f() {
+          return Result.failure(123);
+        },
+        g: () => Result.failure(0),
+        h,
+      };
+    }
+          `,
       errors: [
         {
-          line: 6,
-          messageId: 'voidReturnProperty',
-        },
-        {
-          line: 9,
+          line: 7,
           messageId: 'voidReturnProperty',
         },
         {
           line: 10,
           messageId: 'voidReturnProperty',
         },
+        {
+          line: 11,
+          messageId: 'voidReturnProperty',
+        },
       ],
     },
     {
       code: `
-function f(): () => void {
-  return async () => 0;
-}
-      `,
+    import { Result } from "ts-railway";
+    function f(): () => void {
+      return () => Result.success(0);
+    }
+          `,
       errors: [
         {
-          line: 3,
+          line: 4,
           messageId: 'voidReturnReturnValue',
         },
       ],
     },
     {
       code: `
-function f(): () => void {
-  return async () => 0;
-}
-      `,
+    function f(): () => void {
+      return () => ({ tag: 'success' as const, success: 1 });
+    }
+          `,
       errors: [
         {
           line: 3,
@@ -944,54 +1089,13 @@ function f(): () => void {
     },
     {
       code: `
-type O = {
-  func: () => void;
-};
-const Component = (obj: O) => null;
-<Component func={async () => 0} />;
-      `,
-      parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
-      },
-      errors: [
-        {
-          line: 6,
-          messageId: 'voidReturnAttribute',
-        },
-      ],
-    },
-    {
-      code: `
-type O = {
-  func: () => void;
-};
-const Component = (obj: O) => null;
-<Component func={async () => 0} />;
-      `,
-      parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
-      },
-      errors: [
-        {
-          line: 6,
-          messageId: 'voidReturnAttribute',
-        },
-      ],
-      options: [{ checksVoidReturn: { attributes: true } }],
-    },
-    {
-      code: `
-type O = {
-  func: () => void;
-};
-const g = async () => 'foo';
-const Component = (obj: O) => null;
-<Component func={g} />;
-      `,
+    import { Result } from "ts-railway";
+    type O = {
+      func: () => void;
+    };
+    const Component = (obj: O) => null;
+    <Component func={() => Result.success(0)} />;
+          `,
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
@@ -1006,15 +1110,95 @@ const Component = (obj: O) => null;
     },
     {
       code: `
-interface ItLike {
-  (name: string, callback: () => number): void;
-  (name: string, callback: () => void): void;
-}
-
-declare const it: ItLike;
-
-it('', async () => {});
-      `,
+    import { Result } from "ts-railway";
+    type O = {
+      func: () => void;
+    };
+    const Component = (obj: O) => null;
+    <Component func={() => Result.failure(1)} />;
+          `,
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+      errors: [
+        {
+          line: 7,
+          messageId: 'voidReturnAttribute',
+        },
+      ],
+      options: [{ checksVoidReturn: { attributes: true } }],
+    },
+    {
+      code: `
+    import { Result } from "ts-railway";
+    type O = {
+      func: () => void;
+    };
+    const g = () => Result.success('foo');
+    const Component = (obj: O) => null;
+    <Component func={g} />;
+          `,
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+      errors: [
+        {
+          line: 8,
+          messageId: 'voidReturnAttribute',
+        },
+      ],
+    },
+    {
+      code: `
+    import { Result } from "ts-railway";
+    interface ItLike {
+      (name: string, callback: () => number): void;
+      (name: string, callback: () => void): void;
+    }
+    declare const it: ItLike;
+    it('', () => Result.success(1));
+          `,
+      errors: [
+        {
+          line: 8,
+          messageId: 'voidReturnArgument',
+        },
+      ],
+    },
+    {
+      code: `
+    import { Result } from "ts-railway";
+    interface ItLike {
+      (name: string, callback: () => number): void;
+    }
+    interface ItLike {
+      (name: string, callback: () => void): void;
+    }
+    declare const it: ItLike;
+    it('', () => Result.success(1));
+          `,
+      errors: [
+        {
+          line: 10,
+          messageId: 'voidReturnArgument',
+        },
+      ],
+    },
+    {
+      code: `
+    interface ItLike {
+      (name: string, callback: () => void): void;
+    }
+    interface ItLike {
+      (name: string, callback: () => number): void;
+    }
+    declare const it: ItLike;
+    it('', () => ({tag: 'success' as const, success: 1}));
+          `,
       errors: [
         {
           line: 9,
@@ -1024,64 +1208,25 @@ it('', async () => {});
     },
     {
       code: `
-interface ItLike {
-  (name: string, callback: () => number): void;
-}
-interface ItLike {
-  (name: string, callback: () => void): void;
-}
-
-declare const it: ItLike;
-
-it('', async () => {});
-      `,
+    import { Result } from "ts-railway";
+    console.log({ ...Result.success({ key: 42 }) });
+          `,
       errors: [
         {
-          line: 11,
-          messageId: 'voidReturnArgument',
-        },
-      ],
-    },
-    {
-      code: `
-interface ItLike {
-  (name: string, callback: () => void): void;
-}
-interface ItLike {
-  (name: string, callback: () => number): void;
-}
-
-declare const it: ItLike;
-
-it('', async () => {});
-      `,
-      errors: [
-        {
-          line: 11,
-          messageId: 'voidReturnArgument',
-        },
-      ],
-    },
-    {
-      code: `
-console.log({ ...Promise.resolve({ key: 42 }) });
-      `,
-      errors: [
-        {
-          line: 2,
+          line: 3,
           messageId: 'spread',
         },
       ],
     },
     {
       code: `
-const getData = () => Promise.resolve({ key: 42 });
-
-console.log({
-  someData: 42,
-  ...getData(),
-});
-      `,
+    import { Result } from "ts-railway";
+    const getData = () => Result.success({ key: 42 });
+    console.log({
+      someData: 42,
+      ...getData(),
+    });
+          `,
       errors: [
         {
           line: 6,
@@ -1091,13 +1236,13 @@ console.log({
     },
     {
       code: `
-declare const condition: boolean;
-
-console.log({ ...(condition && Promise.resolve({ key: 42 })) });
-console.log({ ...(condition || Promise.resolve({ key: 42 })) });
-console.log({ ...(condition ? {} : Promise.resolve({ key: 42 })) });
-console.log({ ...(condition ? Promise.resolve({ key: 42 }) : {}) });
-      `,
+    import { Result } from "ts-railway";
+    declare const condition: boolean;
+    console.log({ ...(condition && Result.failure({ key: 42 })) });
+    console.log({ ...(condition || Result.failure({ key: 42 })) });
+    console.log({ ...(condition ? {} : Result.failure({ key: 42 })) });
+    console.log({ ...(condition ? Result.failure({ key: 42 }) : {}) });
+          `,
       errors: [
         { line: 4, messageId: 'spread' },
         { line: 5, messageId: 'spread' },
@@ -1107,16 +1252,16 @@ console.log({ ...(condition ? Promise.resolve({ key: 42 }) : {}) });
     },
     {
       code: `
-function restPromises(first: Boolean, ...callbacks: Array<() => void>): void {}
-
-restPromises(
-  true,
-  () => Promise.resolve(true),
-  () => Promise.resolve(null),
-  () => true,
-  () => Promise.resolve('Hello'),
-);
-      `,
+    import { Result } from "ts-railway";
+    function restPromises(first: Boolean, ...callbacks: Array<() => void>): void {}
+    restPromises(
+      true,
+      () => Result.success(true),
+      () => Result.success(null),
+      () => true,
+      () => Result.success('Hello'),
+    );
+          `,
       errors: [
         { line: 6, messageId: 'voidReturnArgument' },
         { line: 7, messageId: 'voidReturnArgument' },
@@ -1125,108 +1270,108 @@ restPromises(
     },
     {
       code: `
-type MyUnion = (() => void) | boolean;
-
-function restUnion(first: string, ...callbacks: Array<MyUnion>): void {}
-restUnion('Testing', false, () => Promise.resolve(true));
-      `,
-      errors: [{ line: 5, messageId: 'voidReturnArgument' }],
+    type MyUnion = (() => void) | boolean;
+    function restUnion(first: string, ...callbacks: Array<MyUnion>): void {}
+    restUnion('Testing', false, () => ({tag: 'success' as const, success: 1}));
+          `,
+      errors: [{ line: 4, messageId: 'voidReturnArgument' }],
     },
     {
       code: `
-function restTupleOne(first: string, ...callbacks: [() => void]): void {}
-restTupleOne('My string', () => Promise.resolve(1));
-      `,
-      errors: [{ line: 3, messageId: 'voidReturnArgument' }],
+    import { Result } from "ts-railway";
+    function restTupleOne(first: string, ...callbacks: [() => void]): void {}
+    restTupleOne('My string', () => Result.failure(1));
+          `,
+      errors: [{ line: 4, messageId: 'voidReturnArgument' }],
     },
     {
       code: `
-function restTupleTwo(
-  first: boolean,
-  ...callbacks: [undefined, () => void, undefined]
-): void {}
-
-restTupleTwo(true, undefined, () => Promise.resolve(true), undefined);
-      `,
+    import { Result } from "ts-railway";
+    function restTupleTwo(
+      first: boolean,
+      ...callbacks: [undefined, () => void, undefined]
+    ): void {}
+    restTupleTwo(true, undefined, () => Result.success(true), undefined);
+          `,
       errors: [{ line: 7, messageId: 'voidReturnArgument' }],
     },
     {
       code: `
-function restTupleFour(
-  first: number,
-  ...callbacks: [() => void, boolean, () => void, () => void]
-): void;
-
-restTupleFour(
-  1,
-  () => Promise.resolve(true),
-  false,
-  () => {},
-  () => Promise.resolve(1),
-);
-      `,
+    import { Result } from "ts-railway";
+    declare let b: boolean
+    const r = b ? Result.success(1) : Result.success('abc')
+    function restTupleFour(
+      first: number,
+      ...callbacks: [() => void, boolean, () => void, () => void]
+    ): void;
+    restTupleFour(
+      1,
+      () => r,
+      false,
+      () => {},
+      () => r,
+    );
+          `,
       errors: [
-        { line: 9, messageId: 'voidReturnArgument' },
-        { line: 12, messageId: 'voidReturnArgument' },
+        { line: 11, messageId: 'voidReturnArgument' },
+        { line: 14, messageId: 'voidReturnArgument' },
       ],
     },
     {
       // Prettier adds a () but this tests arguments being undefined, not []
       /// eslint-disable-next-line @typescript-eslint/internal/plugin-test-formatting
       code: `
-class TakesVoidCb {
-  constructor(first: string, ...args: Array<() => void>);
-}
-
-new TakesVoidCb;
-new TakesVoidCb();
-new TakesVoidCb(
-  'Testing',
-  () => {},
-  () => Promise.resolve(true),
-);
-      `,
-      errors: [{ line: 11, messageId: 'voidReturnArgument' }],
+    class TakesVoidCb {
+      constructor(first: string, ...args: Array<() => void>);
+    }
+    new TakesVoidCb;
+    new TakesVoidCb();
+    new TakesVoidCb(
+      'Testing',
+      () => {},
+      () => ({ tag: 'success' as const, success: true }),
+    );
+          `,
+      errors: [{ line: 10, messageId: 'voidReturnArgument' }],
     },
     {
       code: `
-function restTuple(...args: []): void;
-function restTuple(...args: [boolean, () => void]): void;
-function restTuple(..._args: any[]): void {}
-
-restTuple();
-restTuple(true, () => Promise.resolve(1));
-      `,
+    import { Result } from "ts-railway";
+    function restTuple(...args: []): void;
+    function restTuple(...args: [boolean, () => void]): void;
+    function restTuple(..._args: any[]): void {}
+    restTuple();
+    restTuple(true, () => Result.success(1));
+          `,
       errors: [{ line: 7, messageId: 'voidReturnArgument' }],
     },
     {
       code: `
-type ReturnsRecord = () => Record<string, () => void>;
-
-const test: ReturnsRecord = () => {
-  return { asynchronous: async () => {} };
-};
-      `,
+    import { Result } from "ts-railway";
+    type ReturnsRecord = () => Record<string, () => void>;
+    const test: ReturnsRecord = () => {
+      return { result: () => Result.failure(1) };
+    };
+          `,
       errors: [{ line: 5, messageId: 'voidReturnProperty' }],
     },
     {
       code: `
-let value: Record<string, () => void>;
-value.asynchronous = async () => {};
-      `,
+    let value: Record<string, () => void>;
+    value.result = () => ({tag: 'failure' as const, failure: 1});
+          `,
       errors: [{ line: 3, messageId: 'voidReturnVariable' }],
     },
     {
       code: `
-type ReturnsRecord = () => Record<string, () => void>;
-
-async function asynchronous() {}
-
-const test: ReturnsRecord = () => {
-  return { asynchronous };
-};
-      `,
-      errors: [{ line: 7, messageId: 'voidReturnProperty' }],
+    import { Result } from "ts-railway";
+    type ReturnsRecord = () => Record<string, () => void>;
+    function result() { return Result.success(1) }
+    const test: ReturnsRecord = () => {
+      return { result };
+    };
+          `,
+      errors: [{ line: 6, messageId: 'voidReturnProperty' }],
     },
   ],
 })
