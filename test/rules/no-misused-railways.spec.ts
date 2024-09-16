@@ -493,6 +493,31 @@ ruleTester.run('no-misused-railways', rule, {
     );
         `,
     `
+    import {Result} from 'ts-railway'
+    class Foo {
+      public static doThing(): void {}
+    }
+    class Bar extends Foo {
+      public doThing(): Result<1,void> {}
+    }
+        `,
+    `
+    class Foo {
+      public doThing(): void {}
+    }
+    class Bar extends Foo {
+      public static doThing(): Result<1, void> {}
+    }
+        `,
+    `
+    class Foo {
+      public doThing = (): void => {};
+    }
+    class Bar extends Foo {
+      public static doThing = (): Result<1,void> => {};
+    }
+      `,
+    `
     function restTuple(...args: []): void;
     function restTuple(...args: [string]): void;
     function restTuple(..._args: string[]): void {}
@@ -553,6 +578,507 @@ ruleTester.run('no-misused-railways', rule, {
       f,
     };
           `,
+    `
+    declare function foo(cb: undefined | (() => void));
+    declare const bar: undefined | (() => void);
+    foo(bar);
+    `,
+    `
+      const notAFn1: string = '';
+      const notAFn2: number = 1;
+      const notAFn3: boolean = true;
+      const notAFn4: { prop: 1 } = { prop: 1 };
+      const notAFn5: {} = {};
+      const notAFn5: {} = {};
+    `,
+    {
+      code: `
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    class MySubclassExtendsMyClass extends MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+      `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    class MyClass {
+     setThing(): Result<1, void> {
+        return Result.success(1)
+      }
+    }
+    class MySubclassExtendsMyClass extends MyClass {
+      setThing(): Result<1, void> {
+        return Result.success(1)
+      }
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    class MySubclassExtendsMyClass extends MyClass {
+     setThing(): Result<1, void> {
+        return Result.success(1)
+      }
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: false } }],
+    },
+    {
+      code: `
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    abstract class MyAbstractClassExtendsMyClass extends MyClass {
+      abstract setThing(): void;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    abstract class MyAbstractClassExtendsMyClass extends MyClass {
+      abstract setThing(): Result<void, void>;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: false } }],
+    },
+    {
+      code: `
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    interface MyInterfaceExtendsMyClass extends MyClass {
+      setThing(): void;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    interface MyInterfaceExtendsMyClass extends MyClass {
+      setThing(): Result<void, void>;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: false } }],
+    },
+    {
+      code: `
+    abstract class MyAbstractClass {
+      abstract setThing(): void;
+    }
+    class MySubclassExtendsMyAbstractClass extends MyAbstractClass {
+      setThing(): void {
+        return;
+      }
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    abstract class MyAbstractClass {
+      abstract setThing(): void;
+    }
+    class MySubclassExtendsMyAbstractClass extends MyAbstractClass {
+     setThing(): Result<1, void> {
+        return Result.success(1)
+      }
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: false } }],
+    },
+    {
+      code: `
+    abstract class MyAbstractClass {
+      abstract setThing(): void;
+    }
+    abstract class MyAbstractSubclassExtendsMyAbstractClass extends MyAbstractClass {
+      abstract setThing(): void;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    abstract class MyAbstractClass {
+      abstract setThing(): void;
+    }
+    abstract class MyAbstractSubclassExtendsMyAbstractClass extends MyAbstractClass {
+      abstract setThing(): Result<void, void>;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: false } }],
+    },
+    {
+      code: `
+    abstract class MyAbstractClass {
+      abstract setThing(): void;
+    }
+    interface MyInterfaceExtendsMyAbstractClass extends MyAbstractClass {
+      setThing(): void;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    abstract class MyAbstractClass {
+      abstract setThing(): void;
+    }
+    interface MyInterfaceExtendsMyAbstractClass extends MyAbstractClass {
+      setThing(): Result<void, void>;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: false } }],
+    },
+    {
+      code: `
+    interface MyInterface {
+      setThing(): void;
+    }
+    interface MySubInterfaceExtendsMyInterface extends MyInterface {
+      setThing(): void;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MyInterface {
+      setThing(): void;
+    }
+    interface MySubInterfaceExtendsMyInterface extends MyInterface {
+      setThing(): Result<void, void>;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: false } }],
+    },
+    {
+      code: `
+    interface MyInterface {
+      setThing(): void;
+    }
+    class MyClassImplementsMyInterface implements MyInterface {
+      setThing(): void {
+        return;
+      }
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MyInterface {
+      setThing(): void;
+    }
+    class MyClassImplementsMyInterface implements MyInterface {
+      setThing(): Result<1, void> {
+        return Result.success(1)
+      }
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: false } }],
+    },
+    {
+      code: `
+    interface MyInterface {
+      setThing(): void;
+    }
+    abstract class MyAbstractClassImplementsMyInterface implements MyInterface {
+      abstract setThing(): void;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MyInterface {
+      setThing(): void;
+    }
+    abstract class MyAbstractClassImplementsMyInterface implements MyInterface {
+      abstract setThing(): Result<void, void>;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: false } }],
+    },
+    {
+      code: `
+    type MyTypeLiteralsIntersection = { setThing(): void } & { thing: number };
+    class MyClass implements MyTypeLiteralsIntersection {
+      thing = 1;
+      setThing(): void {
+        return;
+      }
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    type MyTypeLiteralsIntersection = { setThing(): void } & { thing: number };
+    class MyClass implements MyTypeLiteralsIntersection {
+      thing = 1;
+      setThing(): Result<1, void> {
+        return Result.success(1)
+      }
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: false } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    type MyGenericType<IsAsync extends boolean = true> = IsAsync extends true
+      ? { setThing(): Result<void, void> }
+      : { setThing(): void };
+    interface MyAsyncInterface extends MyGenericType {
+      setThing(): Result<void, void>;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    type MyGenericType<IsAsync extends boolean = true> = IsAsync extends true
+      ? { setThing(): Result<void, void> }
+      : { setThing(): void };
+    interface MyAsyncInterface extends MyGenericType<false> {
+      setThing(): Result<void, void>;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: false } }],
+    },
+    {
+      code: `
+    interface MyInterface {
+      setThing(): void;
+    }
+    interface MyOtherInterface {
+      setThing(): void;
+    }
+    interface MyThirdInterface extends MyInterface, MyOtherInterface {
+      setThing(): void;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    class MyOtherClass {
+      setThing(): void {
+        return;
+      }
+    }
+    interface MyInterface extends MyClass, MyOtherClass {
+      setThing(): void;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    interface MyInterface {
+      setThing(): void;
+    }
+    interface MyOtherInterface {
+      setThing(): void;
+    }
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    class MySubclass extends MyClass implements MyInterface, MyOtherInterface {
+      setThing(): void {
+        return;
+      }
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    const MyClassExpressionExtendsMyClass = class extends MyClass {
+      setThing(): void {
+        return;
+      }
+    };
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    const MyClassExpression = class {
+      setThing(): void {
+        return;
+      }
+    };
+    class MyClassExtendsMyClassExpression extends MyClassExpression {
+      setThing(): void {
+        return;
+      }
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    const MyClassExpression = class {
+      setThing(): void {
+        return;
+      }
+    };
+    type MyClassExpressionType = typeof MyClassExpression;
+    interface MyInterfaceExtendsMyClassExpression extends MyClassExpressionType {
+      setThing(): void;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MySyncCallSignatures {
+      (): void;
+      (arg: string): void;
+    }
+    interface MyAsyncInterface extends MySyncCallSignatures {
+      (): Result<void, void>;
+      (arg: string): Result<void, void>;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MySyncConstructSignatures {
+      new (): void;
+      new (arg: string): void;
+    }
+    interface ThisIsADifferentIssue extends MySyncConstructSignatures {
+      new (): Result<void, void>;
+      new (arg: string): Result<void, void>;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MySyncIndexSignatures {
+      [key: string]: void;
+      [key: number]: void;
+    }
+    interface ThisIsADifferentIssue extends MySyncIndexSignatures {
+      [key: string]: Result<void, void>;
+      [key: number]: Result<void, void>;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MySyncInterfaceSignatures {
+      (): void;
+      (arg: string): void;
+      new (): void;
+      [key: string]: () => void;
+      [key: number]: () => void;
+    }
+    interface MyAsyncInterface extends MySyncInterfaceSignatures {
+      (): Result<void, void>;
+      (arg: string): Result<void, void>;
+      new (): Result<void, void>;
+      [key: string]: () => Result<void, void>;
+      [key: number]: () => Result<void, void>;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
+    {
+      code: `
+    interface MyCall {
+      (): void;
+      (arg: string): void;
+    }
+    interface MyIndex {
+      [key: string]: () => void;
+      [key: number]: () => void;
+    }
+    interface MyConstruct {
+      new (): void;
+      new (arg: string): void;
+    }
+    interface MyMethods {
+      doSyncThing(): void;
+      doOtherSyncThing(): void;
+      syncMethodProperty: () => void;
+    }
+    interface MyInterface extends MyCall, MyIndex, MyConstruct, MyMethods {
+      (): void;
+      (arg: string): void;
+      new (): void;
+      new (arg: string): void;
+      [key: string]: () => void;
+      [key: number]: () => void;
+      doSyncThing(): void;
+      doAsyncThing(): Result<void, void>;
+      syncMethodProperty: () => void;
+    }
+        `,
+      options: [{ checksVoidReturn: { inheritedMethods: true } }],
+    },
   ],
 
   invalid: [
@@ -1372,6 +1898,490 @@ ruleTester.run('no-misused-railways', rule, {
     };
           `,
       errors: [{ line: 6, messageId: 'voidReturnProperty' }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    declare function foo(cb: undefined | (() => void));
+    declare const bar: undefined | (() => Result<void, void>);
+    foo(bar);
+      `,
+      errors: [{ line: 5, messageId: 'voidReturnArgument' }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    declare function foo(cb: string & (() => void));
+    declare const bar: string & (() => Result<void, void>);
+    foo(bar);
+      `,
+      errors: [{ line: 5, messageId: 'voidReturnArgument' }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    function consume(..._callbacks: Array<() => void>): void {}
+    let cbs: Array<() => Result<boolean, void>> = [
+      () => Promise.resolve(true),
+      () => Promise.resolve(true),
+    ];
+    consume(...cbs);
+      `,
+      errors: [{ line: 8, messageId: 'voidReturnArgument' }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    function consume(..._callbacks: Array<() => void>): void {}
+    let cbs = [() => Result.success(true), () => Result.success(true)] as const;
+    consume(...cbs);
+      `,
+      errors: [{ line: 5, messageId: 'voidReturnArgument' }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    function consume(..._callbacks: Array<() => void>): void {}
+    let cbs = [() => Result.success(true), () => Result.success(true)];
+    consume(...cbs);
+      `,
+      errors: [{ line: 5, messageId: 'voidReturnArgument' }],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    class MySubclassExtendsMyClass extends MyClass {
+      setThing(): Result<1, void> {
+        return Result.success(1)
+      }
+    }
+          `,
+      errors: [
+        {
+          line: 9,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyClass' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    abstract class MyAbstractClassExtendsMyClass extends MyClass {
+      abstract setThing(): Result<1, void>;
+    }
+          `,
+      errors: [
+        {
+          line: 9,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyClass' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    interface MyInterfaceExtendsMyClass extends MyClass {
+      setThing(): Result<1, void>
+    }
+          `,
+      errors: [
+        {
+          line: 9,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyClass' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    abstract class MyAbstractClass {
+      abstract setThing(): void;
+    }
+    class MySubclassExtendsMyAbstractClass extends MyAbstractClass {
+      setThing(): Result<1, void> {
+        return Result.success(1)
+      }
+    }
+          `,
+      errors: [
+        {
+          line: 7,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyAbstractClass' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    abstract class MyAbstractClass {
+      abstract setThing(): void;
+    }
+    abstract class MyAbstractSubclassExtendsMyAbstractClass extends MyAbstractClass {
+      abstract setThing(): Result<1,1>
+    }
+          `,
+      errors: [
+        {
+          line: 7,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyAbstractClass' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    abstract class MyAbstractClass {
+      abstract setThing(): void;
+    }
+    interface MyInterfaceExtendsMyAbstractClass extends MyAbstractClass {
+      setThing(): Result<1,1>
+    }
+          `,
+      errors: [
+        {
+          line: 7,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyAbstractClass' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MyInterface {
+      setThing(): void;
+    }
+    class MyInterfaceSubclass implements MyInterface {
+      setThing(): Result<1,1> {
+        return Result.success(1)  
+      }
+    }
+          `,
+      errors: [
+        {
+          line: 7,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyInterface' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MyInterface {
+      setThing(): void;
+    }
+    abstract class MyAbstractClassImplementsMyInterface implements MyInterface {
+      abstract setThing(): Result<1,1>
+    }
+          `,
+      errors: [
+        {
+          line: 7,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyInterface' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MyInterface {
+      setThing(): void;
+    }
+    interface MySubInterface extends MyInterface {
+      setThing(): Result<1,1>
+    }
+          `,
+      errors: [
+        {
+          line: 7,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyInterface' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    type MyTypeIntersection = { setThing(): void } & { thing: number };
+    class MyClassImplementsMyTypeIntersection implements MyTypeIntersection {
+      thing = 1;
+      setThing(): Result<1,1> {
+        return Result.success(1)
+      }
+    }
+          `,
+      errors: [
+        {
+          line: 6,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyTypeIntersection' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    type MyGenericType<IsAsync extends boolean = true> = IsAsync extends true
+      ? { setThing(): Result<1,1> }
+      : { setThing(): void };
+    interface MyAsyncInterface extends MyGenericType<false> {
+      setThing(): Result<1,1>
+    }
+          `,
+      errors: [
+        {
+          line: 7,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: '{ setThing(): void; }' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MyInterface {
+      setThing(): void;
+    }
+    interface MyOtherInterface {
+      setThing(): void;
+    }
+    interface MyThirdInterface extends MyInterface, MyOtherInterface {
+      setThing(): Result<1,1>
+    }
+          `,
+      errors: [
+        {
+          line: 10,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyInterface' },
+        },
+        {
+          line: 10,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyOtherInterface' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    class MyOtherClass {
+      setThing(): void {
+        return;
+      }
+    }
+    interface MyInterface extends MyClass, MyOtherClass {
+      setThing(): Result<1,1>
+    }
+          `,
+      errors: [
+        {
+          line: 14,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyClass' },
+        },
+        {
+          line: 14,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyOtherClass' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MyAsyncInterface {
+      setThing(): Result<1,1>
+    }
+    interface MySyncInterface {
+      setThing(): void;
+    }
+    class MyClass {
+      setThing(): void {
+        return;
+      }
+    }
+    class MySubclass extends MyClass implements MyAsyncInterface, MySyncInterface {
+      setThing(): Result<1,1> {
+        return Result.success(1)
+      }
+    }
+          `,
+      errors: [
+        {
+          line: 15,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyClass' },
+        },
+        {
+          line: 15,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MySyncInterface' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MyInterface {
+      setThing(): void;
+    }
+    const MyClassExpressionExtendsMyClass = class implements MyInterface {
+      setThing(): Result<1,1> {
+        return Result.success(1)
+      }
+    };
+          `,
+      errors: [
+        {
+          line: 7,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyInterface' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    const MyClassExpression = class {
+      setThing(): void {
+        return;
+      }
+    };
+    class MyClassExtendsMyClassExpression extends MyClassExpression {
+      setThing(): Result<1,1> {
+        return Result.success(1)
+      }
+    }
+          `,
+      errors: [
+        {
+          line: 9,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyClassExpression' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    const MyClassExpression = class {
+      setThing(): void {
+        return;
+      }
+    };
+    type MyClassExpressionType = typeof MyClassExpression;
+    interface MyInterfaceExtendsMyClassExpression extends MyClassExpressionType {
+      setThing(): Result<1,1>
+    }
+          `,
+      errors: [
+        {
+          line: 10,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'typeof MyClassExpression' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MySyncInterface {
+      (): void;
+      (arg: string): void;
+      new (): void;
+      [key: string]: () => void;
+      [key: number]: () => void;
+      myMethod(): void;
+    }
+    interface MyAsyncInterface extends MySyncInterface {
+      (): Result<1,void>;
+      (arg: string): Result<1,void>;
+      new (): Result<1,void>;
+      [key: string]: () => Result<1,void>;
+      [key: number]: () => Result<1,void>;
+      myMethod(): Result<1,void>;
+    }
+          `,
+      errors: [
+        {
+          line: 17,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MySyncInterface' },
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    interface MyCall {
+      (): void;
+      (arg: string): void;
+    }
+    interface MyIndex {
+      [key: string]: () => void;
+      [key: number]: () => void;
+    }
+    interface MyConstruct {
+      new (): void;
+      new (arg: string): void;
+    }
+    interface MyMethods {
+      doSyncThing(): void;
+      doOtherSyncThing(): void;
+      syncMethodProperty: () => void;
+    }
+    interface MyInterface extends MyCall, MyIndex, MyConstruct, MyMethods {
+      (): void;
+      (arg: string): Result<2,void>;
+      new (): void;
+      new (arg: string): void;
+      [key: string]: () => Result<2,void>;
+      [key: number]: () => void;
+      doSyncThing(): Result<2,void>;
+      doAsyncThing(): Result<2,void>;
+      syncMethodProperty: () => Result<2,void>;
+    }
+          `,
+      errors: [
+        {
+          line: 27,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyMethods' },
+        },
+        {
+          line: 29,
+          messageId: 'voidReturnInheritedMethod',
+          data: { heritageTypeName: 'MyMethods' },
+        },
+      ],
     },
   ],
 })
