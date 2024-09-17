@@ -4,6 +4,7 @@ export * from './createRule'
 export * from './isResultType'
 export * from './literals'
 export * from './isRestParameterDesclaration'
+export * from './isArrayMethodCallWithPredicate'
 
 // this is done for convenience - saves migrating all of the old rules
 export * from '@typescript-eslint/type-utils'

@@ -24,6 +24,7 @@ type ChecksVoidReturnOptions = {
 
 type MessageId =
   | 'conditional'
+  | 'predicate'
   | 'spread'
   | 'voidReturnArgument'
   | 'voidReturnAttribute'
@@ -62,7 +63,7 @@ function parseChecksVoidReturn(
   }
 }
 
-export const name = 'no-misused-railways' as const
+export const name = 'no-misused-railways'
 
 export const rule = util.createRule<Options, MessageId>({
   name,
@@ -86,6 +87,7 @@ export const rule = util.createRule<Options, MessageId>({
       voidReturnInheritedMethod:
         "Result-returning method provided where a void return was expected by extended/implemented type '{{ heritageTypeName }}'.",
       conditional: 'Expected non-Result value in a boolean conditional.',
+      predicate: 'Expected a non-Result value to be returned.',
       spread: 'Expected a non-Result value to be spreaded in an object.',
     },
     schema: [
@@ -170,6 +172,7 @@ export const rule = util.createRule<Options, MessageId>({
         checkConditional(node.argument, true)
       },
       WhileStatement: checkTestConditional,
+      'CallExpression > MemberExpression': checkArrayPredicates,
     }
 
     checksVoidReturn = parseChecksVoidReturn(checksVoidReturn)
@@ -311,6 +314,22 @@ export const rule = util.createRule<Options, MessageId>({
           messageId: 'conditional',
           node,
         })
+      }
+    }
+
+    function checkArrayPredicates(node: TSESTree.MemberExpression): void {
+      const parent = node.parent
+      if (parent.type === AST_NODE_TYPES.CallExpression) {
+        const callback = parent.arguments.at(0)
+        if (callback && util.isArrayMethodCallWithPredicate(context, services, parent)) {
+          const type = services.esTreeNodeToTSNodeMap.get(callback)
+          if (returnsResult(checker, type)) {
+            context.report({
+              messageId: 'predicate',
+              node: callback,
+            })
+          }
+        }
       }
     }
 

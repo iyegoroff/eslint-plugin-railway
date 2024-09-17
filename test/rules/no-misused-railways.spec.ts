@@ -1079,9 +1079,66 @@ ruleTester.run('no-misused-railways', rule, {
         `,
       options: [{ checksVoidReturn: { inheritedMethods: true } }],
     },
+    `
+    const array: number[] = [1, 2, 3];
+    array.filter(a => a > 1);
+    `,
   ],
 
   invalid: [
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    declare function isTruthy(value: unknown): Result<boolean, void>;
+    [0, 1, 2].filter(isTruthy);
+      `,
+      errors: [
+        {
+          line: 4,
+          messageId: 'predicate',
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    const array: number[] = [];
+    array.every(() => Result.success(true));
+      `,
+      errors: [
+        {
+          line: 4,
+          messageId: 'predicate',
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    const array: (string[] & { foo: 'bar' }) | (number[] & { bar: 'foo' }) = [];
+    array.every(() => Result.success(true));
+      `,
+      errors: [
+        {
+          line: 4,
+          messageId: 'predicate',
+        },
+      ],
+    },
+    {
+      code: `
+    import {Result} from 'ts-railway'
+    const tuple: [number, number, number] = [1, 2, 3];
+    tuple.find(() => Result.success(false));
+      `,
+      options: [{ checksConditionals: true }],
+      errors: [
+        {
+          line: 4,
+          messageId: 'predicate',
+        },
+      ],
+    },
     {
       code: `
     import { Result } from 'ts-railway'
