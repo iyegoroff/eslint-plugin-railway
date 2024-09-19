@@ -6,7 +6,7 @@ import type {
 import { AST_NODE_TYPES } from '@typescript-eslint/utils'
 import type { RuleContext } from '@typescript-eslint/utils/ts-eslint'
 import * as tsutils from 'ts-api-utils'
-import { getStaticValue } from '@typescript-eslint/utils/ast-utils'
+import { getStaticValue } from '@eslint-community/eslint-utils'
 
 type NodeWithKey =
   | TSESTree.MemberExpression

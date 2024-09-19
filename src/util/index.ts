@@ -5,10 +5,11 @@ export * from './isResultType'
 export * from './literals'
 export * from './isRestParameterDesclaration'
 export * from './isArrayMethodCallWithPredicate'
+export * from './isFunction'
 
 // this is done for convenience - saves migrating all of the old rules
 export * from '@typescript-eslint/type-utils'
-export * from '@typescript-eslint/utils/ast-utils'
+// export * from '@typescript-eslint/utils/ast-utils'
 
 const {
   applyDefault,
