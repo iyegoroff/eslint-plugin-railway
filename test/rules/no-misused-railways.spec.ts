@@ -1,6 +1,6 @@
 import { RuleTester } from '@typescript-eslint/rule-tester'
 
-import { rule } from '../../src/rules/no-misused-railways'
+import { rule, name } from '../../src/rules/no-misused-railways'
 
 import { getFixturesRootDir } from '../getFixturesDir'
 
@@ -15,7 +15,7 @@ const ruleTester = new RuleTester({
   parser: '@typescript-eslint/parser',
 })
 
-ruleTester.run('no-misused-railways', rule, {
+ruleTester.run(name, rule, {
   valid: [
     `
     if (true) {
