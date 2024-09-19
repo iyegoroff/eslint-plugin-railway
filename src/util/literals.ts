@@ -1,2 +1,2 @@
-export const successLiteral = 'success' as const
-export const failureLiteral = 'failure' as const
+export const successLiteral = 'success'
+export const failureLiteral = 'failure'
